@@ -31,7 +31,7 @@ with the exception of districts. Consider, for example, the subplace
 ## Installation
 
 This package requires a working installation of
-[sf](https://github.com/r-spatial/sf#installing).
+[`sf`](https://github.com/r-spatial/sf#installing).
 
 You can install the development version from this Github repository via
 the [`remotes`](https://github.com/r-lib/remotes#readme) package in R.
