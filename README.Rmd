@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
   cache = TRUE,
   cache.path = "man/cache/README-",
   fig.path = "man/figures/README-",
-  out.width = "100%",
+  out.width = "50%",
   dpi = 300,
   dev = "ragg_png"
 )
@@ -34,9 +34,20 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The `rsa.shapefiles` package provides easy access to geographic shapefiles with demarcations derived from South Africa's Census 2011. These shapefiles include various administrative levels such as provinces, districts, municipalities, main places, and subplaces. The package simplifies the process of loading and visualising spatial data for South Africa.
+This package simplifies the process of loading and visualising spatial data for South Africa in `R`.
+Shapefiles encompass various administrative levels, such as provinces, districts, municipalities, main places, and subplaces, using Census 2011 demarcations.
 
-The geographic codes in the `subplaces` data frame follow a hierarchical structure consisting of multiple administrative levels. The **municipality code** (`municipality_id`) is a three-digit identifier, where the first digit represents the province and the next two are unique to the municipality (e.g., `167` for Stellenbosch). The **main place code** (`mainplace_id`) is a six-digit identifier, the first three digits matching the municipality code and the last three uniquely identifying the main place (e.g., `167007` for Franschhoek). Similarly, the **subplace code** (`subplace_id`) is a nine-digit identifier, where the first six correspond to the main place and the last three uniquely identify the subplace (e.g., `167007001` for Wemmershoek).
+The main dataset of interest `subplaces` data frame is embedded in the package. 
+`_id` columns represent unique numeric identifiers, while `_name` columns provide descriptive names.
+`_mdb` columns present string identifiers corresponding to the demarcations of the Municipal Demarcation Board of South Africa for provinces, districts, and municipalities.
+
+`subplaces` is structured hierarchically on the basis of `_id` values, with the exception of districts.
+Consider, for example, the subplace `Wemmershoek`:
+
+- `subplace_id`: `167007001`
+- `mainplace_id`: `167007`
+- `municipality_id`: `167`
+- `province_id`: `1`
 
 ## Installation
 
@@ -53,18 +64,19 @@ remotes::install_github("WihanZA/rsa.shapefiles")
 
 ```{r loading}
 library(rsa.shapefiles)
+library(sf)
+
 subplaces <- rsa.shapefiles::subplaces
 ```
 
-### Filter data
+### Filtering data
 
 ```{r filtering}
 subplaces %>%
   filter(grepl("Stellenbosch", municipality_name)) %>%
   distinct(
-    municipality_id, municipality_name,
-    mainplace_id, mainplace_name,
-    subplace_id, subplace_name
+    mainplace_name,
+    subplace_name
   ) %>%
   head()
 ```
@@ -82,8 +94,6 @@ ggplot() +
 ### Aggregating data with `st_union`
 
 ```{r aggregating}
-library(sf)
-
 provinces <- subplaces %>%
   group_by(province_id) %>%
   summarise(

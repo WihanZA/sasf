@@ -7,24 +7,26 @@
 
 <!-- badges: end -->
 
-The `rsa.shapefiles` package provides easy access to geographic
-shapefiles with demarcations derived from South Africa’s Census 2011.
-These shapefiles include various administrative levels such as
-provinces, districts, municipalities, main places, and subplaces. The
-package simplifies the process of loading and visualising spatial data
-for South Africa.
+This package simplifies the process of loading and visualising spatial
+data for South Africa in `R`. Shapefiles encompass various
+administrative levels, such as provinces, districts, municipalities,
+main places, and subplaces, using Census 2011 demarcations.
 
-The geographic codes in the `subplaces` data frame follow a hierarchical
-structure consisting of multiple administrative levels. The
-**municipality code** (`municipality_id`) is a three-digit identifier,
-where the first digit represents the province and the next two are
-unique to the municipality (e.g., `167` for Stellenbosch). The **main
-place code** (`mainplace_id`) is a six-digit identifier, the first three
-digits matching the municipality code and the last three uniquely
-identifying the main place (e.g., `167007` for Franschhoek). Similarly,
-the **subplace code** (`subplace_id`) is a nine-digit identifier, where
-the first six correspond to the main place and the last three uniquely
-identify the subplace (e.g., `167007001` for Wemmershoek).
+The main dataset of interest `subplaces` data frame is embedded in the
+package. `_id` columns represent unique numeric identifiers, while
+`_name` columns provide descriptive names. `_mdb` columns present string
+identifiers corresponding to the demarcations of the Municipal
+Demarcation Board of South Africa for provinces, districts, and
+municipalities.
+
+`subplaces` is structured hierarchically on the basis of `_id` values,
+with the exception of districts. Consider, for example, the subplace
+`Wemmershoek`:
+
+- `subplace_id`: `167007001`
+- `mainplace_id`: `167007`
+- `municipality_id`: `167`
+- `province_id`: `1`
 
 ## Installation
 
@@ -42,30 +44,30 @@ remotes::install_github("WihanZA/rsa.shapefiles")
 
 ``` r
 library(rsa.shapefiles)
+library(sf)
+
 subplaces <- rsa.shapefiles::subplaces
 ```
 
-### Filter data
+### Filtering data
 
 ``` r
 subplaces %>%
   filter(grepl("Stellenbosch", municipality_name)) %>%
   distinct(
-    municipality_id, municipality_name,
-    mainplace_id, mainplace_name,
-    subplace_id, subplace_name
+    mainplace_name,
+    subplace_name
   ) %>%
   head()
-## # A tibble: 6 × 6
-##   municipality_id municipality_name mainplace_id mainplace_name subplace_id
-##             <dbl> <chr>                    <dbl> <chr>                <dbl>
-## 1             167 Stellenbosch            167007 Franschhoek      167007001
-## 2             167 Stellenbosch            167015 Tennantville     167015001
-## 3             167 Stellenbosch            167001 Klapmuts         167001001
-## 4             167 Stellenbosch            167001 Klapmuts         167001002
-## 5             167 Stellenbosch            167001 Klapmuts         167001003
-## 6             167 Stellenbosch            167001 Klapmuts         167001004
-## # ℹ 1 more variable: subplace_name <chr>
+## # A tibble: 6 × 2
+##   mainplace_name subplace_name  
+##   <chr>          <chr>          
+## 1 Franschhoek    Wemmershoek    
+## 2 Tennantville   Tennantville SP
+## 3 Klapmuts       Bennetsville   
+## 4 Klapmuts       Klapmuts SP    
+## 5 Klapmuts       Weltevrede Park
+## 6 Klapmuts       Mandela City
 ```
 
 ### Plotting data
@@ -78,13 +80,11 @@ ggplot() +
   geom_sf(data = subplaces, color = "grey50")
 ```
 
-<img src="man/figures/README-plotting-1.png" width="100%" />
+<img src="man/figures/README-plotting-1.png" width="50%" />
 
 ### Aggregating data with `st_union`
 
 ``` r
-library(sf)
-
 provinces <- subplaces %>%
   group_by(province_id) %>%
   summarise(
@@ -111,7 +111,7 @@ ggplot() +
   scale_fill_viridis_d(option = "magma", begin = 0.15)
 ```
 
-<img src="man/figures/README-aggregating-1.png" width="100%" />
+<img src="man/figures/README-aggregating-1.png" width="50%" />
 
 # Acknowledgements
 
