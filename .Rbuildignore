@@ -2,8 +2,10 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^README\.Rmd$
+^README\.html$
 ^cran-comments\.md$
 ^\.github$
 ^codecov\.yml$
 ^data-raw$
 ^\.secrets$
+^man/cache/README-

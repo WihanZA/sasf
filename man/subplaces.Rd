@@ -8,10 +8,6 @@
 An object of class \code{sf} (inherits from \code{tbl_df}, \code{tbl}, \code{data.frame}) with 22108 rows and 17 columns.
 }
 \source{
-\url{https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata}
-
-\url{https://github.com/konektaz/shape-files/tree/master}
-
 \url{https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/resource/1d0ad274-620f-4b1b-982f-646a2172a313}
 }
 \usage{

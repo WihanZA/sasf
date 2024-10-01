@@ -29,7 +29,5 @@
 #'
 #' Note: MDB refers to the Municipal Demarcation Board of South Africa.
 #'
-#' @source \url{https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata}
-#' @source \url{https://github.com/konektaz/shape-files/tree/master}
 #' @source \url{https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/resource/1d0ad274-620f-4b1b-982f-646a2172a313}
 "subplaces"
