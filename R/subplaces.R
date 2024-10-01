@@ -1,8 +1,11 @@
 #' Subplaces Dataset
 #'
-#' The `subplaces` dataset contains spatial data for subplaces in South Africa based on the 2011 Census. This dataset includes various geographic and administrative attributes for each subplace.
+#' The `subplaces` dataset contains spatial data for subplaces in South Africa
+#' based on the 2011 Census. This dataset includes various geographic and
+#' administrative attributes for each subplace.
 #'
-#' @format A `sf` object with the following columns:
+#` @format ## `subplaces`
+#` A data frame with 22,108 rows and 17 columns:
 #' \describe{
 #'   \item{province_id}{Province code.}
 #'   \item{province_mdb}{Province MDB code.}
@@ -20,18 +23,13 @@
 #'   \item{albers_area}{Area in Albers projection.}
 #'   \item{shape_area}{Shape area.}
 #'   \item{shape_length}{Shape length.}
-#'   \item{geometry}{Geometry of the subplace.}
+#'   \item{geometry}{The `sf` multipolygon for subplace.}
 #' }
+#'
 #'
 #' Note: MDB refers to the Municipal Demarcation Board of South Africa.
 #'
 #' @source \url{https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata}
 #' @source \url{https://github.com/konektaz/shape-files/tree/master}
 #' @source \url{https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/resource/1d0ad274-620f-4b1b-982f-646a2172a313}
-#'
-#' @examples
-#' \dontrun{
-#' library(sf)
-#' data(subplaces)
-#' plot(subplaces["geometry"])
-#' }
+"subplaces"
