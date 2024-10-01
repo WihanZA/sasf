@@ -5,20 +5,8 @@
 \alias{subplaces}
 \title{Subplaces Dataset}
 \format{
-An object of class \code{sf} (inherits from \code{tbl_df}, \code{tbl}, \code{data.frame}) with 22108 rows and 17 columns.
-}
-\source{
-\url{https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/resource/1d0ad274-620f-4b1b-982f-646a2172a313}
-}
-\usage{
-subplaces
-}
-\description{
-The \code{subplaces} dataset contains spatial data for subplaces in South Africa
-based on the 2011 Census. This dataset includes various geographic and
-administrative attributes for each subplace.
-}
-\details{
+\subsection{\code{subplaces}}{
+
 \describe{
 \item{province_id}{Province code.}
 \item{province_mdb}{Province MDB code.}
@@ -40,5 +28,17 @@ administrative attributes for each subplace.
 }
 
 Note: MDB refers to the Municipal Demarcation Board of South Africa.
+}
+}
+\source{
+\url{https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/resource/1d0ad274-620f-4b1b-982f-646a2172a313}
+}
+\usage{
+subplaces
+}
+\description{
+The \code{subplaces} dataset contains spatial data for subplaces in South Africa
+based on the 2011 Census. This dataset includes various geographic and
+administrative attributes for each subplace.
 }
 \keyword{datasets}

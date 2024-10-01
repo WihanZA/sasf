@@ -4,8 +4,7 @@
 #' based on the 2011 Census. This dataset includes various geographic and
 #' administrative attributes for each subplace.
 #'
-# ` @format ## `subplaces`
-# ` A data frame with 22,108 rows and 17 columns:
+#' @format ## `subplaces`
 #' \describe{
 #'   \item{province_id}{Province code.}
 #'   \item{province_mdb}{Province MDB code.}

@@ -21,38 +21,35 @@ municipalities.
 
 `subplaces` is structured hierarchically on the basis of `_id` values,
 with the exception of districts. Consider, for example, the subplace
-`Wemmershoek`:
+“Wemmershoek”:
 
-- `subplace_id`: `167007001`
-- `mainplace_id`: `167007`
-- `municipality_id`: `167`
-- `province_id`: `1`
+- `subplace_id`: 167007001
+- `mainplace_id`: 167007
+- `municipality_id`: 167
+- `province_id`: 1
 
 ## Installation
+
+This package requires a working installation of
+[sf](https://github.com/r-spatial/sf#installing).
 
 You can install the development version from this Github repository via
 the [`remotes`](https://github.com/r-lib/remotes#readme) package in R.
 
 ``` r
 # install.packages("remotes")
+# install.packages("sf")
 remotes::install_github("WihanZA/rsa.shapefiles")
+library(rsa.shapefiles)
+library(sf)
 ```
 
 ## Examples
 
-### Loading data
+### Loading and filtering data
 
 ``` r
-library(rsa.shapefiles)
-library(sf)
-
-subplaces <- rsa.shapefiles::subplaces
-```
-
-### Filtering data
-
-``` r
-subplaces %>%
+rsa.shapefiles::subplaces %>%
   filter(grepl("Stellenbosch", municipality_name)) %>%
   distinct(
     mainplace_name,
@@ -85,22 +82,21 @@ ggplot() +
 ### Aggregating data with `st_union`
 
 ``` r
+# From subplaces to provinces
 provinces <- subplaces %>%
   group_by(province_id) %>%
   summarise(
     geometry = st_union(geometry),
     .groups = "drop"
   )
+```
 
+But `st_union` may take a long time to run, so you can use the
+pre-aggregated `provinces` data frame instead, as in the example below.
+
+``` r
 ggplot() +
   theme_void() +
-  # use province borders
-  geom_sf(
-    data = provinces,
-    color = "white",
-    fill = NA,
-    linewidth = 0.25
-  ) +
   # use subplace fill
   geom_sf(
     data = subplaces,
@@ -108,26 +104,31 @@ ggplot() +
     color = NA,
     show.legend = FALSE
   ) +
+  # use province borders
+  geom_sf(
+    data = rsa.shapefiles::provinces,
+    color = "white",
+    fill = NA,
+    linewidth = 1
+  ) +
   scale_fill_viridis_d(option = "magma", begin = 0.15)
 ```
 
-<img src="man/figures/README-aggregating-1.png" width="50%" />
+<img src="man/figures/README-aggregatingplot-1.png" width="50%" />
 
 # Acknowledgements
 
 - The definitions and demarcations used in Census 2011 are detailed in
-  the **[Census 2011
-  Metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)**,
-  published by Statistics South Africa (2012). The document provides
-  comprehensive information on the geographical boundaries, coding
-  structures, and methodologies used for the census.
+  the corresponding
+  **[metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)**,
+  published by Statistics South Africa (2012).
 
-- This wiki by [konektaz](https://github.com/konektaz) provdides a
-  useful summary of the hierarchical structure of spatial layers: [South
+- The wiki by [konektaz](https://github.com/konektaz) offers a useful
+  summary of the hierarchical structure of spatial layers: *[South
   Africa Census 2011 spatial
-  metadata](https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata)
+  metadata](https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata)*
 
 - The original shapefiles were sourced from the [OpenUp Data
-  Portal](https://data.openup.org.za/) at this link: [Census 2011
+  Portal](https://data.openup.org.za/) at this link: *[Census 2011
   Boundaries Subplace
-  Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)
+  Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)*
