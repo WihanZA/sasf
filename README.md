@@ -120,7 +120,7 @@ ggplot() +
 
 - The definitions and demarcations used in Census 2011 are detailed in
   the corresponding
-  **[metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)**,
+  *[metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)*,
   published by Statistics South Africa (2012).
 
 - The wiki by [konektaz](https://github.com/konektaz) offers a useful
