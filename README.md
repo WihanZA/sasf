@@ -74,7 +74,7 @@ library(ggplot2)
 
 ggplot() +
   theme_void() +
-  geom_sf(data = subplaces, color = "grey50")
+  geom_sf(data = rsa.shapefiles::subplaces, color = "grey50")
 ```
 
 <img src="man/figures/README-plotting-1.png" width="50%" />
@@ -83,7 +83,7 @@ ggplot() +
 
 ``` r
 # From subplaces to provinces
-provinces <- subplaces %>%
+provinces <- rsa.shapefiles::subplaces %>%
   group_by(province_id) %>%
   summarise(
     geometry = st_union(geometry),
@@ -99,7 +99,7 @@ ggplot() +
   theme_void() +
   # use subplace fill
   geom_sf(
-    data = subplaces,
+    data = rsa.shapefiles::subplaces,
     aes(fill = stringr::str_sub(subplace_id, 6, 9)),
     color = NA,
     show.legend = FALSE
