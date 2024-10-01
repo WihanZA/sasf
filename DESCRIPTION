@@ -1,10 +1,10 @@
 Package: rsa.shapefiles
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Provides Easy Access in R to South African Shapefiles
+Version: 0.1.0
 Authors@R: 
     person("Wihan", "Marais", , "wihanmarais@sun.ac.za", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-4720-0929"))
-Description: What the package does (one paragraph).
+Description: The rsa.shapefiles package provides streamlined access to geographical shapefiles for South Africa. It includes cleaned and processed shapefiles from the South African 2011 Census, making it easy to integrate these datasets into spatial analysis workflows in R. The package simplifies the process of working with geographic boundaries at various administrative levels, including provinces, districts, municipalities, and subplaces.
 License: MIT + file LICENSE
 Suggests: 
     testthat (>= 3.0.0)
@@ -12,3 +12,7 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)
+LazyData: true
+LazyDataCompression: xz
