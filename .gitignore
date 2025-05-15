@@ -1,10 +1,2 @@
-.Rproj.user
-.Rhistory
-.Rdata
-.httr-oauth
-.DS_Store
-.quarto
-/data-raw
-/man/cache
-README.html
-/.secrets
+data-raw/rsa-census-2011-subplaces/
+scripts/
