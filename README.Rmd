@@ -1,43 +1,56 @@
 ---
-output: github_document
+author: Wihan Marais
+date: "`r lubridate::today()`"
+output: 
+  github_document:
+    html_preview: FALSE
+    toc: TRUE
+    toc_depth: 2
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, include = FALSE}
-rm(list = ls())
-gc()
-
+```{r setup, include = FALSE}
 library(dplyr)
 library(ggplot2)
-library(sf)
 library(ragg)
-# library(rsa.shapefiles)
+library(lubridate)
+library(tidyr)
+library(ggplot2)
 library(sf)
-devtools::load_all()
 
-# remove.packages("rsa.shapefiles")
-# install.packages("~/Documents/GitHub/Packages/rsa.shapefiles", type = "source")
+plot_width <- 6.5
+golden_ratio <- (1 + sqrt(5)) / 2
 
 knitr::opts_chunk$set(
+  eval = FALSE,
   echo = TRUE,
-  collapse = TRUE,
-  eval = TRUE,
-  cache = TRUE,
-  cache.path = "man/cache/README-",
-  fig.path = "man/figures/README-",
+  warning = FALSE,
+  message = FALSE,
+  include = TRUE,
+  fig.align = "center",
+  fig.width = plot_width,
+  fig.height = plot_width / golden_ratio,
   out.width = "50%",
-  dpi = 300,
-  dev = "ragg_png"
+  dev = "ragg_png",
+  dpi = 180,
+  fig.retina = 2,
+  cache = FALSE,
+  cache.path = "cache/",
+  comment = "#>",
+  cache.path = "man/cache/README-",
+  fig.path = "man/figures/README-"
 )
 ```
 
-# `rsa.shapefiles`
+# `sasf`
 
 <!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/sasf)](https://CRAN.R-project.org/package=sasf)
 <!-- badges: end -->
 
-This package simplifies the process of loading and visualising spatial data for South Africa in `R`.
+The goal of `sasf` is to simplify the process of loading and visualising spatial data for South Africa in `R`.
 Shapefiles encompass various administrative levels, such as provinces, districts, municipalities, main places, and subplaces, using Census 2011 demarcations.
 
 The main dataset of interest `subplaces` data frame is embedded in the package. 
@@ -54,47 +67,58 @@ Consider, for example, the subplace "Wemmershoek":
 
 ## Installation
 
-This package requires a working installation of [`sf`](https://github.com/r-spatial/sf#installing).
+<!-- This package requires a working installation of [`sf`](https://github.com/r-spatial/sf#installing). -->
 
-You can install the development version from this Github repository via the [`remotes`](https://github.com/r-lib/remotes#readme) package in R.
+You can install the development version of `sasf` from [GitHub](https://github.com/) with:
 
-```r
+``` r
 # install.packages("remotes")
-# install.packages("sf")
-remotes::install_github("WihanZA/rsa.shapefiles")
-library(rsa.shapefiles)
-library(sf)
+remotes::install_github("WihanZA/sasf")
 ```
 
-## Examples
+## Basics
 
-### Loading and filtering data
+```{r basics, eval = TRUE}
+# lazy loading of data
+lobstr::mem_used()
+library(sasf)
+lobstr::mem_used()
+invisible(subplaces)
+lobstr::mem_used()
 
-```{r filtering}
-rsa.shapefiles::subplaces %>%
-  filter(grepl("Stellenbosch", municipality_name)) %>%
-  distinct(
-    mainplace_name,
-    subplace_name
-  ) %>%
+# geographic hierarchy
+subplaces %>%
+  # exclude sfc geometry column
+  as.data.frame() %>%
+  select(ends_with("_id")) %>%
+  pivot_longer(everything()) %>%
+  group_by(name) %>%
+  summarise(n = n_distinct(value)) %>%
+  arrange(desc(n))
+
+# filtering
+subplaces %>%
+  filter(grepl("stellenbosch", municipality_name, ignore.case = TRUE)) %>%
   head()
-```
 
-### Plotting data
-
-```{r plotting}
-library(ggplot2)
-
-ggplot() +
+# plotting
+subplaces %>%
+  filter(grepl("stellenbosch", municipality_name, ignore.case = TRUE)) %>%
+  ggplot() +
   theme_void() +
-  geom_sf(data = rsa.shapefiles::subplaces, color = "grey50")
+  geom_sf(
+    aes(fill = subplace_id),
+    color = "grey50",
+    show.legend = FALSE
+  )
 ```
+
 
 ### Aggregating data with `st_union`
 
-```{r aggregating, eval = F}
+```{r aggregating}
 # From subplaces to provinces
-provinces <- rsa.shapefiles::subplaces %>%
+provinces <- sasf::subplaces %>%
   group_by(province_id) %>%
   summarise(
     geometry = st_union(geometry),
@@ -109,14 +133,14 @@ ggplot() +
   theme_void() +
   # use subplace fill
   geom_sf(
-    data = rsa.shapefiles::subplaces,
+    data = sasf::subplaces,
     aes(fill = stringr::str_sub(subplace_id, 6, 9)),
     color = NA,
     show.legend = FALSE
   ) +
   # use province borders
   geom_sf(
-    data = rsa.shapefiles::provinces,
+    data = sasf::provinces,
     color = "white",
     fill = NA,
     linewidth = 1
