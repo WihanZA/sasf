@@ -1,2 +1,4 @@
-data-raw/rsa-census-2011-subplaces/
+data-raw/
 scripts/
+!data-raw/subplaces.R
+!data-raw/benchmarks.R
