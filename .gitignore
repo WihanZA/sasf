@@ -1,4 +1,4 @@
-data-raw/
-scripts/
+data-raw/*
+scripts/*
 !data-raw/subplaces.R
 !data-raw/benchmarks.R
