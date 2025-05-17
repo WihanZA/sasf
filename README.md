@@ -1,10 +1,12 @@
 Wihan Marais
-2025-05-16
+2025-05-17
 
 - [`sasf`](#sasf)
   - [Installation](#installation)
   - [Basics](#basics)
+  - [Helper Functions](#helper-functions)
 - [Acknowledgements](#acknowledgements)
+- [Session Information](#session-information)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -58,21 +60,21 @@ remotes::install_github("WihanZA/sasf")
 lobstr::mem_used()
 ```
 
-    #> 72.20 MB
+    #> 72.31 MB
 
 ``` r
 library(sasf)
 lobstr::mem_used()
 ```
 
-    #> 72.52 MB
+    #> 72.63 MB
 
 ``` r
 invisible(subplaces)
 lobstr::mem_used()
 ```
 
-    #> 115.62 MB
+    #> 115.72 MB
 
 ``` r
 # geographic hierarchy
@@ -125,52 +127,135 @@ subplaces %>%
 ``` r
 # plotting
 subplaces %>%
-  filter(grepl("stellenbosch", municipality_name, ignore.case = TRUE)) %>%
   ggplot() +
+  geom_sf(
+    color = "grey50",
+    fill = "white"
+  )
+```
+
+<img src="man/figures/README-basics-1.png" width="1260" style="display: block; margin: auto;" />
+
+``` r
+# set default ggplot theme
+theme_set(
   theme_void() +
+    theme(
+      legend.position = "bottom",
+      legend.box = "vertical"
+    )
+)
+
+# set GeomSf defaults
+update_geom_defaults(
+  "sf",
+  list(alpha = 0.5)
+)
+```
+
+``` r
+# filtering
+# group_by + summarise amounts to sf::st_union()
+# plot using defaults
+subplaces %>%
+  filter(province_name == "Western Cape") %>%
+  group_by(district_name) %>%
+  summarise() %>%
+  ggplot() +
+  geom_sf(
+    aes(fill = district_name),
+    color = "grey50"
+  ) +
+  labs(
+    fill = "District Muncipality",
+    title = "Western Cape Districts"
+  )
+```
+
+<img src="man/figures/README-plot-defaults-example-1.png" width="1260" style="display: block; margin: auto;" />
+
+## Helper Functions
+
+``` r
+# inappropriate figure aspect ratios cause whitespace
+ratios <- get_asp(
+  sf_obj = subplaces,
+  target_width = 6
+)
+
+# normal & latitude adjusted (for geographic coordinates) ratios
+# corresponding figure heights
+ratios
+```
+
+    #> $asp
+    #> [1] 1.293501
+    #> 
+    #> $target_width
+    #> [1] 6
+    #> 
+    #> $target_height
+    #> [1] 4.638574
+    #> 
+    #> $asp_adj
+    #> [1] 1.136971
+    #> 
+    #> $target_height_adj
+    #> [1] 5.277181
+
+``` r
+# illustrate using Gauteng example
+gauteng <- subplaces %>%
+  filter(province_name == "Gauteng")
+
+# after subsetting subplaces
+# optimal aspect ratio changes
+ratios_gauteng <- get_asp(gauteng, 6)
+
+# plot gauteng subplaces and save
+gauteng_plot <- gauteng %>%
+  ggplot() +
   geom_sf(
     aes(fill = subplace_id),
-    color = "grey50",
-    show.legend = FALSE
-  )
-```
-
-<img src="man/figures/README-basics-1.png" width="50%" style="display: block; margin: auto;" />
-
-### Aggregating data with `st_union`
-
-``` r
-# From subplaces to provinces
-provinces <- sasf::subplaces %>%
-  group_by(province_id) %>%
-  summarise(
-    geometry = st_union(geometry),
-    .groups = "drop"
-  )
-```
-
-But `st_union` may take a long time to run, so you can use the
-pre-aggregated `provinces` data frame instead, as in the example below.
-
-``` r
-ggplot() +
-  theme_void() +
-  # use subplace fill
-  geom_sf(
-    data = sasf::subplaces,
-    aes(fill = stringr::str_sub(subplace_id, 6, 9)),
-    color = NA,
     show.legend = FALSE
   ) +
-  # use province borders
-  geom_sf(
-    data = sasf::provinces,
-    color = "white",
-    fill = NA,
-    linewidth = 1
-  ) +
-  scale_fill_viridis_d(option = "magma", begin = 0.15)
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "grey50")
+  )
+
+ggsave(
+  filename = "asp.png",
+  plot = gauteng_plot,
+  device = ragg::agg_png,
+  path = "man/figures",
+  width = ratios_gauteng$target_width,
+  height = ratios_gauteng$target_height,
+  dpi = 180
+)
+
+ggsave(
+  filename = "asp_adj.png",
+  plot = gauteng_plot,
+  device = ragg::agg_png,
+  path = "man/figures",
+  width = ratios_gauteng$target_width,
+  height = ratios_gauteng$target_height_adj,
+  dpi = 180
+)
 ```
+
+``` r
+knitr::include_graphics("man/figures/asp.png")
+```
+
+<img src="man/figures/asp.png" style="display: block; margin: auto;" />
+
+``` r
+knitr::include_graphics("man/figures/asp_adj.png")
+```
+
+<img src="man/figures/asp_adj.png" style="display: block; margin: auto;" />
 
 # Acknowledgements
 
@@ -188,3 +273,45 @@ ggplot() +
   Portal](https://data.openup.org.za/) at this link: *[Census 2011
   Boundaries Subplace
   Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)*
+
+# Session Information
+
+``` r
+sessionInfo()
+```
+
+    #> R version 4.5.0 (2025-04-11 ucrt)
+    #> Platform: x86_64-w64-mingw32/x64
+    #> Running under: Windows 11 x64 (build 26100)
+    #> 
+    #> Matrix products: default
+    #>   LAPACK version 3.12.1
+    #> 
+    #> locale:
+    #> [1] LC_COLLATE=English_United Kingdom.utf8 
+    #> [2] LC_CTYPE=English_United Kingdom.utf8   
+    #> [3] LC_MONETARY=English_United Kingdom.utf8
+    #> [4] LC_NUMERIC=C                           
+    #> [5] LC_TIME=English_United Kingdom.utf8    
+    #> 
+    #> time zone: Africa/Johannesburg
+    #> tzcode source: internal
+    #> 
+    #> attached base packages:
+    #> [1] stats     graphics  grDevices utils     datasets  methods   base     
+    #> 
+    #> other attached packages:
+    #> [1] sf_1.0-20       tidyr_1.3.1     lubridate_1.9.4 ragg_1.4.0     
+    #> [5] ggplot2_3.5.2   dplyr_1.1.4    
+    #> 
+    #> loaded via a namespace (and not attached):
+    #>  [1] gtable_0.3.6       compiler_4.5.0     Rcpp_1.0.14        tidyselect_1.2.1  
+    #>  [5] systemfonts_1.2.3  scales_1.4.0       textshaping_1.0.1  yaml_2.3.10       
+    #>  [9] fastmap_1.2.0      R6_2.6.1           generics_0.1.4     classInt_0.4-11   
+    #> [13] knitr_1.50         tibble_3.2.1       units_0.8-7        DBI_1.2.3         
+    #> [17] pillar_1.10.2      RColorBrewer_1.1-3 rlang_1.1.6        xfun_0.52         
+    #> [21] timechange_0.3.0   cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
+    #> [25] class_7.3-23       digest_0.6.37      grid_4.5.0         lifecycle_1.0.4   
+    #> [29] vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27       evaluate_1.0.3    
+    #> [33] glue_1.8.0         farver_2.1.2       e1071_1.7-16       rmarkdown_2.29    
+    #> [37] purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3    htmltools_0.5.8.1

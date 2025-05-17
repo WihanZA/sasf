@@ -19,27 +19,20 @@ library(tidyr)
 library(ggplot2)
 library(sf)
 
-plot_width <- 6.5
-golden_ratio <- (1 + sqrt(5)) / 2
-
 knitr::opts_chunk$set(
   eval = FALSE,
   echo = TRUE,
   warning = FALSE,
   message = FALSE,
   include = TRUE,
+  comment = "#>",
   fig.align = "center",
-  fig.width = plot_width,
-  fig.height = plot_width / golden_ratio,
-  out.width = "50%",
+  fig.path = "man/figures/README-",
   dev = "ragg_png",
   dpi = 180,
   fig.retina = 2,
   cache = FALSE,
-  cache.path = "cache/",
-  comment = "#>",
-  cache.path = "man/cache/README-",
-  fig.path = "man/figures/README-"
+  cache.path = "man/cache/README-"
 )
 ```
 
@@ -78,7 +71,7 @@ remotes::install_github("WihanZA/sasf")
 
 ## Basics
 
-```{r basics, eval = TRUE}
+```{r basics, eval = TRUE, cache = TRUE}
 # lazy loading of data
 lobstr::mem_used()
 library(sasf)
@@ -103,49 +96,108 @@ subplaces %>%
 
 # plotting
 subplaces %>%
-  filter(grepl("stellenbosch", municipality_name, ignore.case = TRUE)) %>%
   ggplot() +
+  geom_sf(
+    color = "grey50",
+    fill = "white"
+  )
+```
+
+```{r plot-defaults, eval = TRUE, cache = FALSE}
+# set default ggplot theme
+theme_set(
   theme_void() +
+    theme(
+      legend.position = "bottom",
+      legend.box = "vertical"
+    )
+)
+
+# set GeomSf defaults
+update_geom_defaults(
+  "sf",
+  list(alpha = 0.5)
+)
+```
+
+```{r plot-defaults-example, eval = TRUE, cache = TRUE}
+# filtering
+# group_by + summarise amounts to sf::st_union()
+# plot using defaults
+subplaces %>%
+  filter(province_name == "Western Cape") %>%
+  group_by(district_name) %>%
+  summarise() %>%
+  ggplot() +
+  geom_sf(
+    aes(fill = district_name),
+    color = "grey50"
+  ) +
+  labs(
+    fill = "District Muncipality",
+    title = "Western Cape Districts"
+  )
+```
+
+## Helper Functions
+
+```{r get-asp, eval = TRUE, cache = TRUE}
+# inappropriate figure aspect ratios cause whitespace
+ratios <- get_asp(
+  sf_obj = subplaces,
+  target_width = 6
+)
+
+# normal & latitude adjusted (for geographic coordinates) ratios
+# corresponding figure heights
+ratios
+```
+
+```{r asp-example, eval = TRUE, cache = TRUE}
+# illustrate using Gauteng example
+gauteng <- subplaces %>%
+  filter(province_name == "Gauteng")
+
+# after subsetting subplaces
+# optimal aspect ratio changes
+ratios_gauteng <- get_asp(gauteng, 6)
+
+# plot gauteng subplaces and save
+gauteng_plot <- gauteng %>%
+  ggplot() +
   geom_sf(
     aes(fill = subplace_id),
-    color = "grey50",
-    show.legend = FALSE
-  )
-```
-
-
-### Aggregating data with `st_union`
-
-```{r aggregating}
-# From subplaces to provinces
-provinces <- sasf::subplaces %>%
-  group_by(province_id) %>%
-  summarise(
-    geometry = st_union(geometry),
-    .groups = "drop"
-  )
-```
-
-But `st_union` may take a long time to run, so you can use the pre-aggregated `provinces` data frame instead, as in the example below.
-
-```{r aggregatingplot}
-ggplot() +
-  theme_void() +
-  # use subplace fill
-  geom_sf(
-    data = sasf::subplaces,
-    aes(fill = stringr::str_sub(subplace_id, 6, 9)),
-    color = NA,
     show.legend = FALSE
   ) +
-  # use province borders
-  geom_sf(
-    data = sasf::provinces,
-    color = "white",
-    fill = NA,
-    linewidth = 1
-  ) +
-  scale_fill_viridis_d(option = "magma", begin = 0.15)
+  theme(
+    panel.background = element_rect(fill = "white"),
+    plot.background = element_rect(fill = "grey50")
+  )
+
+ggsave(
+  filename = "asp.png",
+  plot = gauteng_plot,
+  device = ragg::agg_png,
+  path = "man/figures",
+  width = ratios_gauteng$target_width,
+  height = ratios_gauteng$target_height,
+  dpi = 180
+)
+
+ggsave(
+  filename = "asp_adj.png",
+  plot = gauteng_plot,
+  device = ragg::agg_png,
+  path = "man/figures",
+  width = ratios_gauteng$target_width,
+  height = ratios_gauteng$target_height_adj,
+  dpi = 180
+)
+```
+
+```{r print-asp-examples, eval = TRUE}
+knitr::include_graphics("man/figures/asp.png")
+knitr::include_graphics("man/figures/asp_adj.png")
 ```
 
 
@@ -156,3 +208,9 @@ ggplot() +
 - The wiki by [konektaz](https://github.com/konektaz) offers a useful summary of the hierarchical structure of spatial layers: *[South Africa Census 2011 spatial metadata](https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata)*
 
 - The original shapefiles were sourced from the [OpenUp Data Portal](https://data.openup.org.za/) at this link: *[Census 2011 Boundaries Subplace Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)*
+
+# Session Information
+
+```{r info, eval = TRUE, cache = FALSE}
+sessionInfo()
+```
