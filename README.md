@@ -1,9 +1,10 @@
 Wihan Marais
-2025-05-17
+2025-05-18
 
 - [`sasf`](#sasf)
   - [Installation](#installation)
   - [Basics](#basics)
+  - [Plotting](#plotting)
   - [Helper Functions](#helper-functions)
 - [Acknowledgements](#acknowledgements)
 - [Session Information](#session-information)
@@ -23,7 +24,7 @@ status](https://www.r-pkg.org/badges/version/sasf)](https://CRAN.R-project.org/p
 The goal of `sasf` is to simplify the process of loading and visualising
 spatial data for South Africa in `R`. Shapefiles encompass various
 administrative levels, such as provinces, districts, municipalities,
-main places, and subplaces, using Census 2011 demarcations.
+mainplaces, and subplaces, using Census 2011 demarcations.
 
 The main dataset of interest `subplaces` data frame is embedded in the
 package. `_id` columns represent unique numeric identifiers, while
@@ -31,15 +32,6 @@ package. `_id` columns represent unique numeric identifiers, while
 identifiers corresponding to the demarcations of the Municipal
 Demarcation Board of South Africa for provinces, districts, and
 municipalities.
-
-`subplaces` is structured hierarchically on the basis of `_id` values,
-with the exception of districts. Consider, for example, the subplace
-“Wemmershoek”:
-
-- `subplace_id`: 167007001
-- `mainplace_id`: 167007
-- `municipality_id`: 167
-- `province_id`: 1
 
 ## Installation
 
@@ -56,31 +48,38 @@ remotes::install_github("WihanZA/sasf")
 ## Basics
 
 ``` r
-# lazy loading of data
-lobstr::mem_used()
+library(sasf)
+
+# recommended
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(sf)
+library(ragg)
 ```
 
-    #> 72.31 MB
+Somewhat large datasets are lazily loaded to reduce the demand on your
+system’s memory when they’re not in use. See memory usage before and
+after loading the `subplaces` dataset.
 
 ``` r
-library(sasf)
 lobstr::mem_used()
 ```
 
-    #> 72.63 MB
+    #> 72.34 MB
 
 ``` r
 invisible(subplaces)
 lobstr::mem_used()
 ```
 
-    #> 115.72 MB
+    #> 115.70 MB
+
+`subplaces` is structured hierarchically:
 
 ``` r
-# geographic hierarchy
 subplaces %>%
-  # exclude sfc geometry column
-  as.data.frame() %>%
+  st_drop_geometry() %>%
   select(ends_with("_id")) %>%
   pivot_longer(everything()) %>%
   group_by(name) %>%
@@ -97,44 +96,19 @@ subplaces %>%
     #> 4 district_id        52
     #> 5 province_id         9
 
-``` r
-# filtering
-subplaces %>%
-  filter(grepl("stellenbosch", municipality_name, ignore.case = TRUE)) %>%
-  head()
-```
+## Plotting
 
-    #> Simple feature collection with 6 features and 16 fields
-    #> Geometry type: POLYGON
-    #> Dimension:     XY
-    #> Bounding box:  xmin: 18.85507 ymin: -33.92334 xmax: 19.05194 ymax: -33.80165
-    #> Geodetic CRS:  WGS84(DD)
-    #> # A tibble: 6 × 17
-    #>   district_id municipality_name municipality_id province_name mainplace_name
-    #>   <chr>       <chr>             <chr>           <chr>         <chr>         
-    #> 1 102         Stellenbosch      167             Western Cape  Franschhoek   
-    #> 2 102         Stellenbosch      167             Western Cape  Tennantville  
-    #> 3 102         Stellenbosch      167             Western Cape  Klapmuts      
-    #> 4 102         Stellenbosch      167             Western Cape  Klapmuts      
-    #> 5 102         Stellenbosch      167             Western Cape  Klapmuts      
-    #> 6 102         Stellenbosch      167             Western Cape  Klapmuts      
-    #> # ℹ 12 more variables: province_id <chr>, province_mdb <chr>,
-    #> #   district_name <chr>, municipality_mdb <chr>, district_mdb <chr>,
-    #> #   mainplace_id <chr>, subplace_name <chr>, subplace_id <chr>,
-    #> #   shape_albers <dbl>, shape_length <dbl>, shape_area <dbl>,
-    #> #   geometry <POLYGON [°]>
+I recommend the `ggplot2` package for visualising the spatial data:
 
 ``` r
-# plotting
 subplaces %>%
   ggplot() +
-  geom_sf(
-    color = "grey50",
-    fill = "white"
-  )
+  geom_sf()
 ```
 
-<img src="man/figures/README-basics-1.png" width="1260" style="display: block; margin: auto;" />
+<img src="man/figures/readme/basic-plot-1.png" width="50%" style="display: block; margin: auto;" />
+
+Maintain consistently formatted figures by setting default themes:
 
 ``` r
 # set default ggplot theme
@@ -154,66 +128,45 @@ update_geom_defaults(
 ```
 
 ``` r
-# filtering
-# group_by + summarise amounts to sf::st_union()
-# plot using defaults
 subplaces %>%
   filter(province_name == "Western Cape") %>%
   group_by(district_name) %>%
   summarise() %>%
-  ggplot() +
-  geom_sf(
-    aes(fill = district_name),
-    color = "grey50"
-  ) +
+  ggplot(aes(fill = district_name)) +
+  geom_sf(color = "grey50") +
   labs(
     fill = "District Muncipality",
     title = "Western Cape Districts"
   )
 ```
 
-<img src="man/figures/README-plot-defaults-example-1.png" width="1260" style="display: block; margin: auto;" />
+<img src="man/figures/readme/plot-defaults-example-1.png" width="50%" style="display: block; margin: auto;" />
 
 ## Helper Functions
 
-``` r
-# inappropriate figure aspect ratios cause whitespace
-ratios <- get_asp(
-  sf_obj = subplaces,
-  target_width = 6
-)
+Arbitrarily setting generated figures’ dimensions with code chunk
+options `fig.width` and `fig.height`, or the `width` and `height`
+arguments to `ggsave`, may amount to aspect ratios which don’t
+correspond to that of the `sf` object. This leads to redundant
+whitespace in the image created by `knitr` or `ggsave`.
 
-# normal & latitude adjusted (for geographic coordinates) ratios
-# corresponding figure heights
-ratios
-```
+To prevent this, the `sasf` package offers the `get_asp` helper
+function. It takes an `sf` object (and optionally a figure’s target
+width), and returns its inherent aspect ratio (and target height),
+accounting for any latitude distortion where present.
 
-    #> $asp
-    #> [1] 1.293501
-    #> 
-    #> $target_width
-    #> [1] 6
-    #> 
-    #> $target_height
-    #> [1] 4.638574
-    #> 
-    #> $asp_adj
-    #> [1] 1.136971
-    #> 
-    #> $target_height_adj
-    #> [1] 5.277181
+The aforementioned unintended whitespace—and the fix provided by
+`get_asp`—is best illustrated with images generated using `ggsave`
+although the outcome is very much the same as with inappropriate code
+chunk options.
 
 ``` r
-# illustrate using Gauteng example
-gauteng <- subplaces %>%
+# filter spatial data
+gauteng_sf <- subplaces %>%
   filter(province_name == "Gauteng")
 
-# after subsetting subplaces
-# optimal aspect ratio changes
-ratios_gauteng <- get_asp(gauteng, 6)
-
-# plot gauteng subplaces and save
-gauteng_plot <- gauteng %>%
+# create plot
+gauteng_plot <- gauteng_sf %>%
   ggplot() +
   geom_sf(
     aes(fill = subplace_id),
@@ -224,44 +177,61 @@ gauteng_plot <- gauteng %>%
     plot.background = element_rect(fill = "grey50")
   )
 
+# save images to the same path
+fig_path <- "man/figures/readme"
+
+# with arbitrary dimensions 6x5
 ggsave(
-  filename = "asp.png",
+  filename = "gauteng-whitespace.png",
   plot = gauteng_plot,
   device = ragg::agg_png,
-  path = "man/figures",
-  width = ratios_gauteng$target_width,
-  height = ratios_gauteng$target_height,
+  path = fig_path,
+  width = 6,
+  height = 5,
   dpi = 180
 )
 
+# get ideal asepct ratio for the sf object
+# targeting the same width as before
+gauteng_asp <- get_asp(
+  sf_obj = gauteng_sf,
+  target_width = 6
+)
+
+gauteng_asp
+```
+
+    #> $asp
+    #> [1] 0.9620082
+    #> 
+    #> $target_width
+    #> [1] 6
+    #> 
+    #> $target_height
+    #> [1] 6.236953
+
+``` r
+# with recommended dimensions
 ggsave(
-  filename = "asp_adj.png",
+  filename = "gauteng-corrected.png",
   plot = gauteng_plot,
   device = ragg::agg_png,
-  path = "man/figures",
-  width = ratios_gauteng$target_width,
-  height = ratios_gauteng$target_height_adj,
+  path = fig_path,
+  width = gauteng_asp$target_width,
+  height = gauteng_asp$target_height,
   dpi = 180
 )
+
+knitr::include_graphics(file.path(fig_path, "gauteng-whitespace.png"))
+knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 ```
 
-``` r
-knitr::include_graphics("man/figures/asp.png")
-```
-
-<img src="man/figures/asp.png" style="display: block; margin: auto;" />
-
-``` r
-knitr::include_graphics("man/figures/asp_adj.png")
-```
-
-<img src="man/figures/asp_adj.png" style="display: block; margin: auto;" />
+<img src="man/figures/readme/gauteng-whitespace.png" width="45%" style="display: block; margin: auto;" /><img src="man/figures/readme/gauteng-corrected.png" width="45%" style="display: block; margin: auto;" />
 
 # Acknowledgements
 
-- The definitions and demarcations used in Census 2011 are detailed in
-  the corresponding
-  *[metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)*,
+- Demarcations used by the 2011 Census are detailed in the
+  *[metadata](https://www.statssa.gov.za/census/census_2011/census_products/Census_2011_Metadata.pdf)*
   published by Statistics South Africa (2012).
 
 - The wiki by [konektaz](https://github.com/konektaz) offers a useful
@@ -301,17 +271,19 @@ sessionInfo()
     #> [1] stats     graphics  grDevices utils     datasets  methods   base     
     #> 
     #> other attached packages:
-    #> [1] sf_1.0-20       tidyr_1.3.1     lubridate_1.9.4 ragg_1.4.0     
-    #> [5] ggplot2_3.5.2   dplyr_1.1.4    
+    #> [1] ragg_1.4.0    sf_1.0-20     ggplot2_3.5.2 tidyr_1.3.1   dplyr_1.1.4  
+    #> [6] sasf_1.0.0   
     #> 
     #> loaded via a namespace (and not attached):
-    #>  [1] gtable_0.3.6       compiler_4.5.0     Rcpp_1.0.14        tidyselect_1.2.1  
-    #>  [5] systemfonts_1.2.3  scales_1.4.0       textshaping_1.0.1  yaml_2.3.10       
-    #>  [9] fastmap_1.2.0      R6_2.6.1           generics_0.1.4     classInt_0.4-11   
-    #> [13] knitr_1.50         tibble_3.2.1       units_0.8-7        DBI_1.2.3         
-    #> [17] pillar_1.10.2      RColorBrewer_1.1-3 rlang_1.1.6        xfun_0.52         
-    #> [21] timechange_0.3.0   cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
-    #> [25] class_7.3-23       digest_0.6.37      grid_4.5.0         lifecycle_1.0.4   
-    #> [29] vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27       evaluate_1.0.3    
-    #> [33] glue_1.8.0         farver_2.1.2       e1071_1.7-16       rmarkdown_2.29    
-    #> [37] purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3    htmltools_0.5.8.1
+    #>  [1] gtable_0.3.6       compiler_4.5.0     tidyselect_1.2.1   Rcpp_1.0.14       
+    #>  [5] textshaping_1.0.1  systemfonts_1.2.3  scales_1.4.0       yaml_2.3.10       
+    #>  [9] fastmap_1.2.0      lobstr_1.1.2       R6_2.6.1           generics_0.1.4    
+    #> [13] classInt_0.4-11    s2_1.1.8           knitr_1.50         tibble_3.2.1      
+    #> [17] units_0.8-7        lubridate_1.9.4    DBI_1.2.3          RColorBrewer_1.1-3
+    #> [21] pillar_1.10.2      rlang_1.1.6        utf8_1.2.5         xfun_0.52         
+    #> [25] timechange_0.3.0   cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
+    #> [29] wk_0.9.4           class_7.3-23       digest_0.6.37      grid_4.5.0        
+    #> [33] lifecycle_1.0.4    prettyunits_1.2.0  vctrs_0.6.5        KernSmooth_2.23-26
+    #> [37] proxy_0.4-27       evaluate_1.0.3     glue_1.8.0         farver_2.1.2      
+    #> [41] codetools_0.2-20   e1071_1.7-16       rmarkdown_2.29     purrr_1.0.4       
+    #> [45] tools_4.5.0        pkgconfig_2.0.3    htmltools_0.5.8.1
