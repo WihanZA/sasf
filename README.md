@@ -1,12 +1,4 @@
 
-- [`sasf`](#sasf)
-  - [Installation](#installation)
-  - [Basics](#basics)
-  - [Plotting](#plotting)
-  - [Helper Functions](#helper-functions)
-- [Acknowledgements](#acknowledgements)
-- [Session Information](#session-information)
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # `sasf`
@@ -276,13 +268,12 @@ sessionInfo()
     #> loaded via a namespace (and not attached):
     #>  [1] gtable_0.3.6       compiler_4.5.0     tidyselect_1.2.1   Rcpp_1.0.14       
     #>  [5] textshaping_1.0.1  systemfonts_1.2.3  scales_1.4.0       yaml_2.3.10       
-    #>  [9] fastmap_1.2.0      lobstr_1.1.2       R6_2.6.1           generics_0.1.4    
-    #> [13] classInt_0.4-11    s2_1.1.8           knitr_1.50         tibble_3.2.1      
-    #> [17] units_0.8-7        DBI_1.2.3          pillar_1.10.2      RColorBrewer_1.1-3
-    #> [21] rlang_1.1.6        utf8_1.2.5         xfun_0.52          cli_3.6.5         
-    #> [25] withr_3.0.2        magrittr_2.0.3     wk_0.9.4           class_7.3-23      
-    #> [29] digest_0.6.37      grid_4.5.0         lifecycle_1.0.4    prettyunits_1.2.0 
-    #> [33] vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27       evaluate_1.0.3    
-    #> [37] glue_1.8.0         farver_2.1.2       codetools_0.2-20   e1071_1.7-16      
-    #> [41] rmarkdown_2.29     purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3   
-    #> [45] htmltools_0.5.8.1
+    #>  [9] fastmap_1.2.0      R6_2.6.1           generics_0.1.4     classInt_0.4-11   
+    #> [13] s2_1.1.8           knitr_1.50         tibble_3.2.1       units_0.8-7       
+    #> [17] DBI_1.2.3          pillar_1.10.2      RColorBrewer_1.1-3 rlang_1.1.6       
+    #> [21] xfun_0.52          cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
+    #> [25] wk_0.9.4           class_7.3-23       digest_0.6.37      grid_4.5.0        
+    #> [29] lifecycle_1.0.4    vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27      
+    #> [33] evaluate_1.0.3     glue_1.8.0         farver_2.1.2       e1071_1.7-16      
+    #> [37] rmarkdown_2.29     purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3   
+    #> [41] htmltools_0.5.8.1
