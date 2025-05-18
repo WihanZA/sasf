@@ -219,6 +219,151 @@ knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 
 <img src="man/figures/readme/gauteng-whitespace.png" width="50%" style="display: block; margin: auto;" /><img src="man/figures/readme/gauteng-corrected.png" width="50%" style="display: block; margin: auto;" />
 
+## Complete Example
+
+The aim of this example is to illustrate how other sources of spatial
+data can be used alongside `sasf` to enhance and complement
+visualisations and analyses. Ultimately, we want to plot the locations
+of datacentres across South Africa.
+
+### Data: Open Access Datacentres
+
+Download, process and plot spatial data on open access datacentres in
+Africa which has been collected from publicly available sources. Big
+thanks to [Steve Song](https://github.com/stevesong/Africa-Datacentres)!
+
+``` r
+# set path to resources for README
+resources <- "man/resources/readme"
+
+# download raw geojson data
+if (!file.exists(file.path(resources, "datacentres.geojson"))) {
+  download.file(
+    url = "https://raw.githubusercontent.com/stevesong/Africa-Datacentres/refs/heads/main/Africa_datacentres_05Jan2025.geojson",
+    destfile = file.path(resources, "datacentres.geojson"),
+    method = "curl"
+  )
+}
+
+# read geojson file
+datacentres <- geojsonsf::geojson_sf(file.path(resources, "datacentres.geojson"))
+
+# clean column names and filter data
+datacentres <- datacentres %>%
+  clean_names() %>%
+  filter(grepl("south africa", country, ignore.case = TRUE))
+
+# convert char to num where appropriate
+char_to_num <- function(col) {
+  num <- suppressWarnings(as.numeric(col))
+  if (all(is.na(num))) {
+    return(col)
+  } else {
+    return(num)
+  }
+}
+
+datacentres <- datacentres %>%
+  mutate(across(
+    where(is.character) & !matches("post_code"),
+    ~ char_to_num(.x)
+  ))
+
+# clean char columns
+datacentres <- datacentres %>%
+  mutate(across(
+    where(is.character),
+    ~ case_when(
+      . == "" ~ NA,
+      TRUE ~ stringr::str_squish(.)
+    )
+  ))
+
+# take a look at the structure
+glimpse(datacentres)
+```
+
+    #> Rows: 17
+    #> Columns: 15
+    #> $ tel             <chr> NA, "+27 (0) 11 573 2800", NA, "+27 (0) 11 573 2800", …
+    #> $ country         <chr> "South Africa", "South Africa", "South Africa", "South…
+    #> $ address2        <chr> "Elfindale", "Rondebosch", "Rondebosch", "Brackenfell"…
+    #> $ city            <chr> "Cape Town", "Cape Town", "Cape Town", "Cape Town", "C…
+    #> $ address         <chr> "108 De Waal Rd", "Great Westerford Building", "Belmon…
+    #> $ it_power        <dbl> 9.0, 3.0, 2.0, 50.0, 5.0, 4.0, 2.0, 20.0, NA, NA, NA, …
+    #> $ sqm_white_space <dbl> 2700, 2600, 700, 18000, 1500, 2000, 1500, NA, NA, 2000…
+    #> $ post_code       <chr> "7945", NA, NA, NA, NA, "4000", NA, NA, "1614", NA, NA…
+    #> $ subsidiary_url  <chr> "https://www.africadatacentres.com/", "https://www.ter…
+    #> $ url             <chr> "https://www.cassavatechnologies.com/", "https://www.d…
+    #> $ short_name      <chr> "CPT1", "CT1", "CPT1", "CT2", "CPT2", "DUR1", "DB1", "…
+    #> $ subsidiary      <chr> "Africa DataCentres", "Teraco", NA, "Teraco", NA, NA, …
+    #> $ company         <chr> "Cassava Technologies", "Digital Realty", "Open Access…
+    #> $ exchange_host   <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, "NAPAfrica IX", NA…
+    #> $ geometry        <POINT [°]> POINT (18.47787 -34.03742), POINT (18.4649 -33.9…
+
+### Aggregate `subplaces` to Create Borders
+
+For many use cases, spatial data by subplace is too granular and
+computationally cumbersome. The dimensions of the `subplaces` dataset
+can be reduced by aggregating the geometries of individual subplaces
+toward less granular administrative levels/geographic units. In this
+example, we merely want to plot provincial borders.
+
+There are various ways to accomplish this feat and below we’ll benchmark
+a couple of similar approaches: -
+[`rmapshaper`](https://andyteucher.ca/rmapshaper/) relying on the
+[`mapshaper`](https://github.com/mbloch/mapshaper/) tool written in
+JavaScript. We benchmark the package’s `ms_dissolve` with and without
+the use of a locally installed `mapshaper` library. -
+[`sf`](https://r-spatial.github.io/sf/index.html) package’s well-known
+[`st_union`](https://r-spatial.github.io/sf/reference/geos_combine.html)
+to combine several feature geometries into one with- or without
+resolving internal boundaries.
+
+Each approach has their own peculiar costs and benenfits. The execution
+time will also differ dramatically depending on each function’s given
+set of arguments, as well as the given spatial data of interest. It is
+up to the user to determine the best approach for their use case.
+
+``` r
+# dissolve internal boundaries
+tictoc::tic("dissolve")
+provinces <- subplaces %>%
+  rmapshaper::ms_dissolve(field = "province_name")
+tictoc::toc()
+```
+
+    #> dissolve: 6.87 sec elapsed
+
+``` r
+# confirm local installation
+# rmapshaper::check_sys_mapshaper()
+
+# dissolve internal boundaries + local library
+tictoc::tic("dissolve_sys")
+provinces <- subplaces %>%
+  rmapshaper::ms_dissolve(
+    field = "province_name",
+    sys = TRUE,
+    sys_mem = 6,
+    quiet = TRUE
+  )
+tictoc::toc()
+```
+
+    #> dissolve_sys: 4.39 sec elapsed
+
+``` r
+# geometric union of set of features into a single one
+tictoc::tic("st_union")
+provinces <- subplaces %>%
+  group_by(province_name) %>%
+  summarise(geometry = st_union(geometry, by_feature = FALSE))
+tictoc::toc()
+```
+
+    #> st_union: 47.88 sec elapsed
+
 # Acknowledgements
 
 - Demarcations used by the 2011 Census are detailed in the
@@ -262,18 +407,21 @@ sessionInfo()
     #> [1] stats     graphics  grDevices utils     datasets  methods   base     
     #> 
     #> other attached packages:
-    #> [1] ragg_1.4.0    sf_1.0-20     ggplot2_3.5.2 tidyr_1.3.1   dplyr_1.1.4  
-    #> [6] sasf_1.0.0   
+    #> [1] janitor_2.2.1 ragg_1.4.0    sf_1.0-20     ggplot2_3.5.2 tidyr_1.3.1  
+    #> [6] dplyr_1.1.4   sasf_1.0.0   
     #> 
     #> loaded via a namespace (and not attached):
-    #>  [1] gtable_0.3.6       compiler_4.5.0     tidyselect_1.2.1   Rcpp_1.0.14       
-    #>  [5] textshaping_1.0.1  systemfonts_1.2.3  scales_1.4.0       yaml_2.3.10       
-    #>  [9] fastmap_1.2.0      R6_2.6.1           generics_0.1.4     classInt_0.4-11   
-    #> [13] s2_1.1.8           knitr_1.50         tibble_3.2.1       units_0.8-7       
-    #> [17] DBI_1.2.3          pillar_1.10.2      RColorBrewer_1.1-3 rlang_1.1.6       
-    #> [21] xfun_0.52          cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
-    #> [25] wk_0.9.4           class_7.3-23       digest_0.6.37      grid_4.5.0        
-    #> [29] lifecycle_1.0.4    vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27      
-    #> [33] evaluate_1.0.3     glue_1.8.0         farver_2.1.2       e1071_1.7-16      
-    #> [37] rmarkdown_2.29     purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3   
-    #> [41] htmltools_0.5.8.1
+    #>  [1] s2_1.1.8           generics_0.1.4     class_7.3-23       KernSmooth_2.23-26
+    #>  [5] lattice_0.22-7     stringi_1.8.7      digest_0.6.37      magrittr_2.0.3    
+    #>  [9] evaluate_1.0.3     grid_4.5.0         timechange_0.3.0   RColorBrewer_1.1-3
+    #> [13] fastmap_1.2.0      jsonlite_2.0.0     e1071_1.7-16       DBI_1.2.3         
+    #> [17] purrr_1.0.4        scales_1.4.0       rmapshaper_0.5.0   codetools_0.2-20  
+    #> [21] textshaping_1.0.1  cli_3.6.5          rlang_1.1.6        units_0.8-7       
+    #> [25] withr_3.0.2        yaml_2.3.10        tools_4.5.0        geojsonsf_2.0.3   
+    #> [29] curl_6.2.2         vctrs_0.6.5        R6_2.6.1           proxy_0.4-27      
+    #> [33] lifecycle_1.0.4    lubridate_1.9.4    classInt_0.4-11    snakecase_0.11.1  
+    #> [37] stringr_1.5.1      V8_6.0.3           pkgconfig_2.0.3    pillar_1.10.2     
+    #> [41] gtable_0.3.6       glue_1.8.0         Rcpp_1.0.14        systemfonts_1.2.3 
+    #> [45] xfun_0.52          tibble_3.2.1       tidyselect_1.2.1   knitr_1.50        
+    #> [49] farver_2.1.2       htmltools_0.5.8.1  rmarkdown_2.29     wk_0.9.4          
+    #> [53] compiler_4.5.0     sp_2.2-0

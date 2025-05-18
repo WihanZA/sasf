@@ -14,6 +14,7 @@ library(tidyr)
 library(ggplot2)
 library(sf)
 library(ragg)
+library(janitor)
 
 knitr::opts_chunk$set(
   eval = TRUE,
@@ -197,6 +198,153 @@ ggsave(
 # using out.width = 50%
 knitr::include_graphics(file.path(fig_path, "gauteng-whitespace.png"))
 knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
+```
+
+## Complete Example
+
+The aim of this example is to illustrate how other sources of spatial data can be used alongside `sasf` to enhance and complement visualisations and analyses.
+Ultimately, we want to plot the locations of datacentres across South Africa.
+
+### Data: Open Access Datacentres
+
+Download, process and plot spatial data on open access datacentres in Africa which has been collected from publicly available sources.
+Big thanks to [Steve Song](https://github.com/stevesong/Africa-Datacentres)!
+
+```{r datacentres-download}
+# set path to resources for README
+resources <- "man/resources/readme"
+
+# download raw geojson data
+if (!file.exists(file.path(resources, "datacentres.geojson"))) {
+  download.file(
+    url = "https://raw.githubusercontent.com/stevesong/Africa-Datacentres/refs/heads/main/Africa_datacentres_05Jan2025.geojson",
+    destfile = file.path(resources, "datacentres.geojson"),
+    method = "curl"
+  )
+}
+
+# read geojson file
+datacentres <- geojsonsf::geojson_sf(file.path(resources, "datacentres.geojson"))
+
+# clean column names and filter data
+datacentres <- datacentres %>%
+  clean_names() %>%
+  filter(grepl("south africa", country, ignore.case = TRUE))
+
+# convert char to num where appropriate
+char_to_num <- function(col) {
+  num <- suppressWarnings(as.numeric(col))
+  if (all(is.na(num))) {
+    return(col)
+  } else {
+    return(num)
+  }
+}
+
+datacentres <- datacentres %>%
+  mutate(across(
+    where(is.character) & !matches("post_code"),
+    ~ char_to_num(.x)
+  ))
+
+# clean char columns
+datacentres <- datacentres %>%
+  mutate(across(
+    where(is.character),
+    ~ case_when(
+      . == "" ~ NA,
+      TRUE ~ stringr::str_squish(.)
+    )
+  ))
+
+# take a look at the structure
+glimpse(datacentres)
+```
+
+### Aggregate `subplaces` to Create Borders
+
+For many use cases, spatial data by subplace is too granular and computationally cumbersome.
+The dimensions of the `subplaces` dataset can be reduced by aggregating the geometries of individual subplaces toward less granular administrative levels/geographic units.
+In this example, we merely want to plot provincial borders.
+
+There are various ways to accomplish this feat and below we'll benchmark a couple of similar approaches:
+  - [`rmapshaper`](https://andyteucher.ca/rmapshaper/) relying on the [`mapshaper`](https://github.com/mbloch/mapshaper/) tool written in JavaScript. We benchmark the package's `ms_dissolve` with and without the use of a locally installed `mapshaper` library.
+  - [`sf`](https://r-spatial.github.io/sf/index.html) package's well-known [`st_union`](https://r-spatial.github.io/sf/reference/geos_combine.html) to combine several feature geometries into one with- or without resolving internal boundaries.
+
+Each approach has their own peculiar costs and benenfits.
+The execution time will also differ dramatically depending on each function's given set of arguments, as well as the given spatial data of interest.
+It is up to the user to determine the best approach for their use case.
+
+``` r
+# dissolve internal boundaries
+tictoc::tic("dissolve")
+provinces <- subplaces %>%
+  rmapshaper::ms_dissolve(field = "province_name")
+tictoc::toc()
+```
+
+    #> dissolve: 6.87 sec elapsed
+
+``` r
+# confirm local installation
+# rmapshaper::check_sys_mapshaper()
+
+# dissolve internal boundaries + local library
+tictoc::tic("dissolve_sys")
+provinces <- subplaces %>%
+  rmapshaper::ms_dissolve(
+    field = "province_name",
+    sys = TRUE,
+    sys_mem = 6,
+    quiet = TRUE
+  )
+tictoc::toc()
+```
+
+    #> dissolve_sys: 4.39 sec elapsed
+
+``` r
+# geometric union of set of features into a single one
+tictoc::tic("st_union")
+provinces <- subplaces %>%
+  group_by(province_name) %>%
+  summarise(geometry = st_union(geometry, by_feature = FALSE))
+tictoc::toc()
+```
+
+    #> st_union: 47.88 sec elapsed
+
+```{r provinces, echo = FALSE, include = FALSE}
+provinces <- subplaces %>%
+  rmapshaper::ms_dissolve(
+    field = "province_name",
+    sys = TRUE,
+    sys_mem = 6,
+    quiet = TRUE
+  )
+```
+
+
+```{r datacentres-plot, eval = FALSE, include = FALSE}
+# plot datacentres
+datacentres %>%
+  ggplot() +
+  geom_sf(
+    data = provinces,
+    color = "grey50",
+    fill = NA,
+    linewidth = 1
+  ) +
+  geom_sf(
+    aes(color = company),
+    data = datacentres,
+    size = 20,
+    alpha = 0.2
+  ) +
+  labs(
+    title = "Open Access Datacentres in South Africa",
+    color = "Company"
+  )
 ```
 
 
