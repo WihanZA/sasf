@@ -1,6 +1,4 @@
 ---
-author: Wihan Marais
-date: "`r lubridate::today()`"
 output: 
   github_document:
     html_preview: FALSE
@@ -29,7 +27,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/readme/",
   dev = "ragg_png",
   dpi = 180,
-  out.width = "50%",
+  out.width = "100%",
   cache = TRUE,
   cache.path = "man/cache/readme/"
 )
@@ -63,9 +61,10 @@ remotes::install_github("WihanZA/sasf")
 ## Basics
 
 ```r
+# load the package
 library(sasf)
 
-# recommended
+# recommended packages
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -121,9 +120,8 @@ update_geom_defaults(
   "sf",
   list(alpha = 0.5)
 )
-```
 
-```{r plot-defaults-example}
+# create new plot
 subplaces %>%
   filter(province_name == "Western Cape") %>%
   group_by(district_name) %>%
@@ -146,7 +144,7 @@ It takes an `sf` object (and optionally a figure's target width), and returns it
 
 The aforementioned unintended whitespace---and the fix provided by `get_asp`---is best illustrated with images generated using `ggsave` although the outcome is very much the same as with inappropriate code chunk options.
 
-```{r gauteng-example, out.width = "45%", fig.show = "hold"}
+```{r gauteng-example, fig.show = "hold", out.width="50%"}
 # filter spatial data
 gauteng_sf <- subplaces %>%
   filter(province_name == "Gauteng")
@@ -197,6 +195,7 @@ ggsave(
   dpi = 180
 )
 
+# using out.width = 50%
 knitr::include_graphics(file.path(fig_path, "gauteng-whitespace.png"))
 knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 ```

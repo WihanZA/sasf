@@ -1,5 +1,3 @@
-Wihan Marais
-2025-05-18
 
 - [`sasf`](#sasf)
   - [Installation](#installation)
@@ -48,9 +46,10 @@ remotes::install_github("WihanZA/sasf")
 ## Basics
 
 ``` r
+# load the package
 library(sasf)
 
-# recommended
+# recommended packages
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -66,14 +65,14 @@ after loading the `subplaces` dataset.
 lobstr::mem_used()
 ```
 
-    #> 72.34 MB
+    #> 66.00 MB
 
 ``` r
 invisible(subplaces)
 lobstr::mem_used()
 ```
 
-    #> 115.70 MB
+    #> 109.39 MB
 
 `subplaces` is structured hierarchically:
 
@@ -106,7 +105,7 @@ subplaces %>%
   geom_sf()
 ```
 
-<img src="man/figures/readme/basic-plot-1.png" width="50%" style="display: block; margin: auto;" />
+<img src="man/figures/readme/basic-plot-1.png" width="100%" style="display: block; margin: auto;" />
 
 Maintain consistently formatted figures by setting default themes:
 
@@ -125,9 +124,8 @@ update_geom_defaults(
   "sf",
   list(alpha = 0.5)
 )
-```
 
-``` r
+# create new plot
 subplaces %>%
   filter(province_name == "Western Cape") %>%
   group_by(district_name) %>%
@@ -140,7 +138,7 @@ subplaces %>%
   )
 ```
 
-<img src="man/figures/readme/plot-defaults-example-1.png" width="50%" style="display: block; margin: auto;" />
+<img src="man/figures/readme/plot-defaults-1.png" width="100%" style="display: block; margin: auto;" />
 
 ## Helper Functions
 
@@ -222,11 +220,12 @@ ggsave(
   dpi = 180
 )
 
+# using out.width = 50%
 knitr::include_graphics(file.path(fig_path, "gauteng-whitespace.png"))
 knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 ```
 
-<img src="man/figures/readme/gauteng-whitespace.png" width="45%" style="display: block; margin: auto;" /><img src="man/figures/readme/gauteng-corrected.png" width="45%" style="display: block; margin: auto;" />
+<img src="man/figures/readme/gauteng-whitespace.png" width="50%" style="display: block; margin: auto;" /><img src="man/figures/readme/gauteng-corrected.png" width="50%" style="display: block; margin: auto;" />
 
 # Acknowledgements
 
@@ -279,11 +278,11 @@ sessionInfo()
     #>  [5] textshaping_1.0.1  systemfonts_1.2.3  scales_1.4.0       yaml_2.3.10       
     #>  [9] fastmap_1.2.0      lobstr_1.1.2       R6_2.6.1           generics_0.1.4    
     #> [13] classInt_0.4-11    s2_1.1.8           knitr_1.50         tibble_3.2.1      
-    #> [17] units_0.8-7        lubridate_1.9.4    DBI_1.2.3          RColorBrewer_1.1-3
-    #> [21] pillar_1.10.2      rlang_1.1.6        utf8_1.2.5         xfun_0.52         
-    #> [25] timechange_0.3.0   cli_3.6.5          withr_3.0.2        magrittr_2.0.3    
-    #> [29] wk_0.9.4           class_7.3-23       digest_0.6.37      grid_4.5.0        
-    #> [33] lifecycle_1.0.4    prettyunits_1.2.0  vctrs_0.6.5        KernSmooth_2.23-26
-    #> [37] proxy_0.4-27       evaluate_1.0.3     glue_1.8.0         farver_2.1.2      
-    #> [41] codetools_0.2-20   e1071_1.7-16       rmarkdown_2.29     purrr_1.0.4       
-    #> [45] tools_4.5.0        pkgconfig_2.0.3    htmltools_0.5.8.1
+    #> [17] units_0.8-7        DBI_1.2.3          pillar_1.10.2      RColorBrewer_1.1-3
+    #> [21] rlang_1.1.6        utf8_1.2.5         xfun_0.52          cli_3.6.5         
+    #> [25] withr_3.0.2        magrittr_2.0.3     wk_0.9.4           class_7.3-23      
+    #> [29] digest_0.6.37      grid_4.5.0         lifecycle_1.0.4    prettyunits_1.2.0 
+    #> [33] vctrs_0.6.5        KernSmooth_2.23-26 proxy_0.4-27       evaluate_1.0.3    
+    #> [37] glue_1.8.0         farver_2.1.2       codetools_0.2-20   e1071_1.7-16      
+    #> [41] rmarkdown_2.29     purrr_1.0.4        tools_4.5.0        pkgconfig_2.0.3   
+    #> [45] htmltools_0.5.8.1
