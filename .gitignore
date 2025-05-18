@@ -1,3 +1,5 @@
 data-raw/*
 scripts/*
 man/cache/*
+data/subplaces_high.rda
+man/subplaces_high.Rd

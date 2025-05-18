@@ -62,18 +62,17 @@ South-Africa---Census-2011-spatial-metadata}
 subplaces
 }
 \description{
-The \code{subplaces} dataset contains simplified spatial
-data for subplaces in South Africa
-based on the 2011 Census.
-This dataset includes the same attributes as \code{subplaces_high}
-but with simplified geometries
-(keeping approximately 20\% of the original vertices),
-making it more suitable for visualization
+The \code{subplaces} dataset contains spatial
+data for subplaces in South Africa based on the 2011 Census demarcations.
+The dataset keeps approximately 20\% of source data's original vertices,
+making it more suitable for visualisation
 and analysis that don't require high-resolution boundaries.
+This dataset includes various geographic and
+administrative attributes for each subplace with detailed geometries.
 }
 \note{
 MDB refers to the Municipal Demarcation Board of South Africa.
-This dataset is a simplified version of \code{subplaces_high},
+This dataset is a simplified and cleaned version of its source data,
 created using \code{rmapshaper::ms_simplify()} with \code{keep = 0.2} to
 retain approximately 20\% of the original vertices.
 This reduces the file size to approximately 11 MB on disk
