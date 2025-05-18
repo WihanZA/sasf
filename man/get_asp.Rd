@@ -13,16 +13,14 @@ get_asp(sf_obj, target_width = NULL)
 }
 \value{
 A list containing:
-\item{asp}{The raw aspect ratio (width/height) of the bounding box}
+\item{asp}{The aspect ratio (width/height) of the bounding box, adjusted for latitude in geographic coordinates}
 \item{target_width}{The specified target width (if provided)}
 \item{target_height}{The calculated optimal height based on aspect ratio}
-\item{asp_adj}{Latitude-adjusted aspect ratio (for geographic coordinates)}
-\item{target_height_adj}{Adjusted optimal height (for geographic coordinates)}
 }
 \description{
 Calculates the aspect ratio of a simple features (sf) object and optionally
 determines optimal plot dimensions based on a target width. For geographic
-coordinates, also provides latitude-adjusted values.
+coordinates, the aspect ratio is adjusted for latitude distortion.
 }
 \author{
 Wihan Marais <github.com/WihanZA>
