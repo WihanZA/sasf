@@ -27,9 +27,8 @@ get_asp <- function(sf_obj, target_width = NULL) {
   response <- list()
 
   # Validate target_width if provided
-  if (
-    !(!is.null(target_width) && is.numeric(target_width) && target_width > 0)
-  ) {
+  if (is.null(target_width)) {
+  } else if (!(is.numeric(target_width) && target_width > 0)) {
     stop("target_width must be valid number > 0")
   }
 
