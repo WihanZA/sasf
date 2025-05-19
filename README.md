@@ -57,14 +57,14 @@ after loading the `subplaces` dataset.
 lobstr::mem_used()
 ```
 
-    #> 66.00 MB
+    #> 73.27 MB
 
 ``` r
 invisible(subplaces)
 lobstr::mem_used()
 ```
 
-    #> 109.39 MB
+    #> 116.64 MB
 
 `subplaces` is structured hierarchically:
 
@@ -106,8 +106,12 @@ Maintain consistently formatted figures by setting default themes:
 theme_set(
   theme_void() +
     theme(
+      plot.title = element_text(hjust = 0.5),
       legend.position = "bottom",
-      legend.box = "vertical"
+      legend.box = "vertical",
+      legend.text = element_text(size = rel(0.5)),
+      legend.title.position = "top",
+      legend.title = element_text(size = rel(0.5), hjust = 0.5)
     )
 )
 
@@ -364,6 +368,79 @@ tictoc::toc()
 
     #> st_union: 47.88 sec elapsed
 
+The resulting `provinces` object (in this case from `ms_dissolve`)
+entails only the names and geometries for each province, and looks like
+this:
+
+``` r
+ggplot() +
+  geom_sf(
+    data = provinces,
+    aes(color = province_name),
+    fill = "white",
+    linewidth = 1,
+    show.legend = FALSE
+  )
+```
+
+<img src="man/figures/readme/provinces-plot-1.png" width="100%" style="display: block; margin: auto;" />
+
+### Plotting Datacentres
+
+Now that we have the provincial backdrop, we’re able to plot the
+datacentres. Fortunately, in this case, it wasn’t really necessary to
+transform the coordinate reference systems (CRS) of either `datacentres`
+or `provinces`. However, for completeness, we can ensure their
+consistency:
+
+``` r
+datacentres <- st_transform(
+  x = datacentres,
+  crs = st_crs(provinces)
+)
+```
+
+`ggplot2` and `geom_sf` deals with the distinct objects’ bounding boxes
+and aspect ratios, and the resulting plot passes the smell test. If we
+intend on hardcoding figure dimensions, we should remember to determine
+the appropriate dimensions for our new plot. As `provinces` is the
+larger of the two, and `datacentres` is entirely contained within the
+former, we’ll only need the aspect ratio of `provinces`.
+
+``` r
+plot_asp <- get_asp(provinces, 6)
+```
+
+Using the values in `plot_asp`, we can set `fig.height` and `fig.width`
+in the next code chunk. However, introducing additional plot elements
+like titles and legends would obviously impact the optimal aspect ratio
+of the output, but one can use `get_asp` as a starting point and
+incrementally revise from there. Here is the result of all our hard
+work:
+
+``` r
+datacentres %>%
+  ggplot() +
+  geom_sf(
+    # plot's CRS defaults to first layer
+    data = provinces,
+    fill = NA,
+  ) +
+  geom_sf(
+    aes(color = company),
+    data = datacentres,
+    size = 10,
+    alpha = 0.2
+  ) +
+  labs(
+    title = "Open Access Datacentres in South Africa",
+    color = "Company"
+  ) +
+  guides(colour = guide_legend(override.aes = list(size = 5)))
+```
+
+<img src="man/figures/readme/datacentres-plot-1.png" width="100%" style="display: block; margin: auto;" />
+
 # Acknowledgements
 
 - Demarcations used by the 2011 Census are detailed in the
@@ -412,16 +489,14 @@ sessionInfo()
     #> 
     #> loaded via a namespace (and not attached):
     #>  [1] s2_1.1.8           generics_0.1.4     class_7.3-23       KernSmooth_2.23-26
-    #>  [5] lattice_0.22-7     stringi_1.8.7      digest_0.6.37      magrittr_2.0.3    
-    #>  [9] evaluate_1.0.3     grid_4.5.0         timechange_0.3.0   RColorBrewer_1.1-3
-    #> [13] fastmap_1.2.0      jsonlite_2.0.0     e1071_1.7-16       DBI_1.2.3         
-    #> [17] purrr_1.0.4        scales_1.4.0       rmapshaper_0.5.0   codetools_0.2-20  
-    #> [21] textshaping_1.0.1  cli_3.6.5          rlang_1.1.6        units_0.8-7       
-    #> [25] withr_3.0.2        yaml_2.3.10        tools_4.5.0        geojsonsf_2.0.3   
-    #> [29] curl_6.2.2         vctrs_0.6.5        R6_2.6.1           proxy_0.4-27      
-    #> [33] lifecycle_1.0.4    lubridate_1.9.4    classInt_0.4-11    snakecase_0.11.1  
-    #> [37] stringr_1.5.1      V8_6.0.3           pkgconfig_2.0.3    pillar_1.10.2     
-    #> [41] gtable_0.3.6       glue_1.8.0         Rcpp_1.0.14        systemfonts_1.2.3 
-    #> [45] xfun_0.52          tibble_3.2.1       tidyselect_1.2.1   knitr_1.50        
-    #> [49] farver_2.1.2       htmltools_0.5.8.1  rmarkdown_2.29     wk_0.9.4          
-    #> [53] compiler_4.5.0     sp_2.2-0
+    #>  [5] stringi_1.8.7      digest_0.6.37      magrittr_2.0.3     evaluate_1.0.3    
+    #>  [9] grid_4.5.0         timechange_0.3.0   RColorBrewer_1.1-3 fastmap_1.2.0     
+    #> [13] e1071_1.7-16       DBI_1.2.3          purrr_1.0.4        scales_1.4.0      
+    #> [17] codetools_0.2-20   textshaping_1.0.1  cli_3.6.5          rlang_1.1.6       
+    #> [21] units_0.8-7        withr_3.0.2        yaml_2.3.10        tools_4.5.0       
+    #> [25] vctrs_0.6.5        R6_2.6.1           proxy_0.4-27       lifecycle_1.0.4   
+    #> [29] lubridate_1.9.4    classInt_0.4-11    snakecase_0.11.1   stringr_1.5.1     
+    #> [33] pkgconfig_2.0.3    pillar_1.10.2      gtable_0.3.6       glue_1.8.0        
+    #> [37] Rcpp_1.0.14        systemfonts_1.2.3  xfun_0.52          tibble_3.2.1      
+    #> [41] tidyselect_1.2.1   knitr_1.50         farver_2.1.2       htmltools_0.5.8.1 
+    #> [45] rmarkdown_2.29     wk_0.9.4           compiler_4.5.0

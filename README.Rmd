@@ -110,8 +110,12 @@ Maintain consistently formatted figures by setting default themes:
 theme_set(
   theme_void() +
     theme(
+      plot.title = element_text(hjust = 0.5),
       legend.position = "bottom",
-      legend.box = "vertical"
+      legend.box = "vertical",
+      legend.text = element_text(size = rel(0.5)),
+      legend.title.position = "top",
+      legend.title = element_text(size = rel(0.5), hjust = 0.5)
     )
 )
 
@@ -314,7 +318,10 @@ tictoc::toc()
 
     #> st_union: 47.88 sec elapsed
 
+The resulting `provinces` object (in this case from `ms_dissolve`) entails only the names and geometries for each province, and looks like this:
+
 ```{r provinces, echo = FALSE, include = FALSE}
+# this is where i actually load provinces
 provinces <- subplaces %>%
   rmapshaper::ms_dissolve(
     field = "province_name",
@@ -324,27 +331,61 @@ provinces <- subplaces %>%
   )
 ```
 
+```{r provinces-plot}
+ggplot() +
+  geom_sf(
+    data = provinces,
+    aes(color = province_name),
+    fill = "white",
+    linewidth = 1,
+    show.legend = FALSE
+  )
+```
 
-```{r datacentres-plot, eval = FALSE, include = FALSE}
-# plot datacentres
+### Plotting Datacentres
+
+Now that we have the provincial backdrop, we're able to plot the datacentres.
+Fortunately, in this case, it wasn't really necessary to transform the coordinate reference systems (CRS) of either `datacentres` or `provinces`.
+However, for completeness, we can ensure their consistency:
+
+```{r conform-crs}
+datacentres <- st_transform(
+  x = datacentres,
+  crs = st_crs(provinces)
+)
+```
+
+`ggplot2` and `geom_sf` deals with the distinct objects' bounding boxes and aspect ratios, and the resulting plot passes the smell test.
+If we intend on hardcoding figure dimensions, we should remember to determine the appropriate dimensions for our new plot.
+As `provinces` is the larger of the two, and `datacentres` is entirely contained within the former, we'll only need the aspect ratio of `provinces`.
+
+```{r datacentres-asp}
+plot_asp <- get_asp(provinces, 6)
+```
+
+Using the values in `plot_asp`, we can set `fig.height` and `fig.width` in the next code chunk.
+However, introducing additional plot elements like titles and legends would obviously impact the optimal aspect ratio of the output, but one can use `get_asp` as a starting point and incrementally revise from there.
+Here is the result of all our hard work:
+
+```{r datacentres-plot, fig.width=plot_asp$target_width, fig.height = 1.135*plot_asp$target_height}
 datacentres %>%
   ggplot() +
   geom_sf(
+    # plot's CRS defaults to first layer
     data = provinces,
-    color = "grey50",
     fill = NA,
-    linewidth = 1
   ) +
   geom_sf(
     aes(color = company),
     data = datacentres,
-    size = 20,
+    size = 10,
     alpha = 0.2
   ) +
   labs(
     title = "Open Access Datacentres in South Africa",
     color = "Company"
-  )
+  ) +
+  guides(colour = guide_legend(override.aes = list(size = 5)))
 ```
 
 
