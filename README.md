@@ -57,14 +57,14 @@ after loading the `subplaces` dataset.
 lobstr::mem_used()
 ```
 
-    #> 73.27 MB
+    #> 73.28 MB
 
 ``` r
 invisible(subplaces)
 lobstr::mem_used()
 ```
 
-    #> 116.64 MB
+    #> 116.66 MB
 
 `subplaces` is structured hierarchically:
 
@@ -223,14 +223,13 @@ knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 
 <img src="man/figures/readme/gauteng-whitespace.png" width="50%" style="display: block; margin: auto;" /><img src="man/figures/readme/gauteng-corrected.png" width="50%" style="display: block; margin: auto;" />
 
-## Complete Example
+## Complete Example: Mapping Datacentres in South Africa
 
-The aim of this example is to illustrate how other sources of spatial
-data can be used alongside `sasf` to enhance and complement
-visualisations and analyses. Ultimately, we want to plot the locations
-of datacentres across South Africa.
+This comprehensive example demonstrates how to combine `sasf` with
+external spatial data. We’ll plot open access datacentres across South
+Africa through these steps:
 
-### Data: Open Access Datacentres
+### Step 1: Download and Process Datacentre Data
 
 Download, process and plot spatial data on open access datacentres in
 Africa which has been collected from publicly available sources. Big
@@ -305,7 +304,7 @@ glimpse(datacentres)
     #> $ exchange_host   <chr> NA, NA, NA, NA, NA, NA, NA, NA, NA, "NAPAfrica IX", NA…
     #> $ geometry        <POINT [°]> POINT (18.47787 -34.03742), POINT (18.4649 -33.9…
 
-### Aggregate `subplaces` to Create Borders
+### Step 2: Create Provincial Boundaries
 
 For many use cases, spatial data by subplace is too granular and
 computationally cumbersome. The dimensions of the `subplaces` dataset
@@ -314,15 +313,17 @@ toward less granular administrative levels/geographic units. In this
 example, we merely want to plot provincial borders.
 
 There are various ways to accomplish this feat and below we’ll benchmark
-a couple of similar approaches: -
-[`rmapshaper`](https://andyteucher.ca/rmapshaper/) relying on the
-[`mapshaper`](https://github.com/mbloch/mapshaper/) tool written in
-JavaScript. We benchmark the package’s `ms_dissolve` with and without
-the use of a locally installed `mapshaper` library. -
-[`sf`](https://r-spatial.github.io/sf/index.html) package’s well-known
-[`st_union`](https://r-spatial.github.io/sf/reference/geos_combine.html)
-to combine several feature geometries into one with- or without
-resolving internal boundaries.
+a couple of similar approaches:
+
+- [`rmapshaper`](https://andyteucher.ca/rmapshaper/) relying on the
+  [`mapshaper`](https://github.com/mbloch/mapshaper/) tool written in
+  JavaScript. We benchmark the package’s `ms_dissolve` with and without
+  the use of a locally installed `mapshaper` library.
+
+- [`sf`](https://r-spatial.github.io/sf/index.html) package’s well-known
+  [`st_union`](https://r-spatial.github.io/sf/reference/geos_combine.html)
+  to combine several feature geometries into one with- or without
+  resolving internal boundaries.
 
 Each approach has their own peculiar costs and benenfits. The execution
 time will also differ dramatically depending on each function’s given
@@ -385,7 +386,7 @@ ggplot() +
 
 <img src="man/figures/readme/provinces-plot-1.png" width="100%" style="display: block; margin: auto;" />
 
-### Plotting Datacentres
+### Step 3: Basic Datacentre Visualisation
 
 Now that we have the provincial backdrop, we’re able to plot the
 datacentres. Fortunately, in this case, it wasn’t really necessary to
@@ -441,6 +442,128 @@ datacentres %>%
 
 <img src="man/figures/readme/datacentres-plot-1.png" width="100%" style="display: block; margin: auto;" />
 
+### Step 4: Advanced Faceted Visualization by Province
+
+Creating a multi-panel visualisation by province allows for a more
+detailed examination.
+
+First, we’ll need to disable S2 spherical geometry to avoid topological
+errors that can occur when joining spatial objects. Then we’ll spatially
+join our datacentres with provinces to determine which datacentres fall
+within each province.
+
+``` r
+# Disable S2 spherical geometry to avoid topological errors
+sf_use_s2(FALSE)
+```
+
+    #> Spherical geometry (s2) switched off
+
+``` r
+# join datasets by checking whether x is within y
+combined <- st_join(
+  x = datacentres,
+  y = provinces,
+  join = st_within,
+  left = FALSE
+)
+```
+
+    #> although coordinates are longitude/latitude, st_within assumes that they are
+    #> planar
+
+``` r
+# Check which provinces contain datacentres
+unique(combined$province_name)
+```
+
+    #> [1] "Western Cape"  "KwaZulu-Natal" "Gauteng"
+
+The spatial join preserves the datacentre geometries while associating
+each point with its containing province. This shows us that datacentres
+are concentrated in just three provinces.
+
+Standard plot faceting doesn’t work well with spatial data and `geom_sf`
+because the axes cannot be scaled freely while maintaining the correct
+geographic proportions. Therefore, we’ll use a custom approach with
+`cowplot` to create a composite. We’ll need to create individual plots
+for each province.
+
+``` r
+# Create a list of plots, one for each province with datacentres
+provinces_plots <- purrr::map(
+  unique(combined$province_name),
+  function(x) {
+    ggplot() +
+      geom_sf(
+        data = provinces %>%
+          filter(province_name == x),
+        fill = NA
+      ) +
+      geom_sf(
+        data = combined %>%
+          filter(province_name == x),
+        aes(color = company),
+        size = 10,
+        alpha = 0.5,
+        show.legend = FALSE
+      )
+  }
+)
+```
+
+For a complete visualization, we need a shared legend. We’ll extract a
+legend from a dummy plot and then combine it with our province plots.
+
+``` r
+# Extract a legend from a dummy plot
+plot_legend <- cowplot::get_plot_component(
+  plot = {
+    combined %>%
+      ggplot() +
+      geom_sf(
+        aes(color = company),
+        size = 10,
+        alpha = 0.5,
+        show.legend = TRUE
+      ) +
+      guides(color = guide_legend(
+        "Company",
+        nrow = 1,
+        override.aes = list(size = 5)
+      )) +
+      theme(legend.position = "bottom")
+  },
+  "guide-box-bottom",
+  return_all = TRUE
+)
+
+# Arrange the individual province plots in a row
+plot_top_row <- cowplot::plot_grid(
+  plotlist = provinces_plots,
+  ncol = 3,
+  labels = c("Western Cape", "Kwa-Zulu Natal", "Gauteng"),
+  label_x = 0.5,
+  hjust = 0.5
+)
+
+# Combine the plots with the legend underneath
+cowplot::plot_grid(
+  plot_top_row,
+  plot_legend,
+  ncol = 1,
+  rel_heights = c(1, .1)
+)
+```
+
+<img src="man/figures/readme/legend-and-final-plot-1.png" width="100%" style="display: block; margin: auto;" />
+
+This composite visualization shows that South Africa’s datacentres are
+concentrated in three provinces, with different companies maintaining
+presence across these economic hubs. The approach demonstrates how
+`sasf` can be combined with other packages to create informative
+visualisations and analyses.
+
 # Acknowledgements
 
 - Demarcations used by the 2011 Census are detailed in the
@@ -456,6 +579,10 @@ datacentres %>%
   Portal](https://data.openup.org.za/) at this link: *[Census 2011
   Boundaries Subplace
   Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)*
+
+- For data on African datacentres, see the
+  [`Africa-Datacentres`](https://github.com/stevesong/Africa-Datacentres)
+  by Steve Song.
 
 # Session Information
 
@@ -488,15 +615,18 @@ sessionInfo()
     #> [6] dplyr_1.1.4   sasf_1.0.0   
     #> 
     #> loaded via a namespace (and not attached):
-    #>  [1] s2_1.1.8           generics_0.1.4     class_7.3-23       KernSmooth_2.23-26
-    #>  [5] stringi_1.8.7      digest_0.6.37      magrittr_2.0.3     evaluate_1.0.3    
-    #>  [9] grid_4.5.0         timechange_0.3.0   RColorBrewer_1.1-3 fastmap_1.2.0     
-    #> [13] e1071_1.7-16       DBI_1.2.3          purrr_1.0.4        scales_1.4.0      
-    #> [17] codetools_0.2-20   textshaping_1.0.1  cli_3.6.5          rlang_1.1.6       
-    #> [21] units_0.8-7        withr_3.0.2        yaml_2.3.10        tools_4.5.0       
-    #> [25] vctrs_0.6.5        R6_2.6.1           proxy_0.4-27       lifecycle_1.0.4   
-    #> [29] lubridate_1.9.4    classInt_0.4-11    snakecase_0.11.1   stringr_1.5.1     
-    #> [33] pkgconfig_2.0.3    pillar_1.10.2      gtable_0.3.6       glue_1.8.0        
-    #> [37] Rcpp_1.0.14        systemfonts_1.2.3  xfun_0.52          tibble_3.2.1      
-    #> [41] tidyselect_1.2.1   knitr_1.50         farver_2.1.2       htmltools_0.5.8.1 
-    #> [45] rmarkdown_2.29     wk_0.9.4           compiler_4.5.0
+    #>  [1] s2_1.1.8           utf8_1.2.5         generics_0.1.4     class_7.3-23      
+    #>  [5] KernSmooth_2.23-26 lattice_0.22-7     stringi_1.8.7      digest_0.6.37     
+    #>  [9] magrittr_2.0.3     evaluate_1.0.3     grid_4.5.0         timechange_0.3.0  
+    #> [13] RColorBrewer_1.1-3 fastmap_1.2.0      jsonlite_2.0.0     lobstr_1.1.2      
+    #> [17] e1071_1.7-16       DBI_1.2.3          purrr_1.0.4        scales_1.4.0      
+    #> [21] rmapshaper_0.5.0   codetools_0.2-20   textshaping_1.0.1  cli_3.6.5         
+    #> [25] rlang_1.1.6        units_0.8-7        cowplot_1.1.3      withr_3.0.2       
+    #> [29] yaml_2.3.10        tools_4.5.0        geojsonsf_2.0.3    curl_6.2.2        
+    #> [33] vctrs_0.6.5        R6_2.6.1           proxy_0.4-27       lifecycle_1.0.4   
+    #> [37] lubridate_1.9.4    classInt_0.4-11    snakecase_0.11.1   stringr_1.5.1     
+    #> [41] V8_6.0.3           pkgconfig_2.0.3    pillar_1.10.2      gtable_0.3.6      
+    #> [45] glue_1.8.0         Rcpp_1.0.14        systemfonts_1.2.3  xfun_0.52         
+    #> [49] tibble_3.2.1       tidyselect_1.2.1   knitr_1.50         farver_2.1.2      
+    #> [53] htmltools_0.5.8.1  labeling_0.4.3     rmarkdown_2.29     wk_0.9.4          
+    #> [57] compiler_4.5.0     prettyunits_1.2.0  sp_2.2-0

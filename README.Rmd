@@ -204,12 +204,12 @@ knitr::include_graphics(file.path(fig_path, "gauteng-whitespace.png"))
 knitr::include_graphics(file.path(fig_path, "gauteng-corrected.png"))
 ```
 
-## Complete Example
+## Complete Example: Mapping Datacentres in South Africa
 
-The aim of this example is to illustrate how other sources of spatial data can be used alongside `sasf` to enhance and complement visualisations and analyses.
-Ultimately, we want to plot the locations of datacentres across South Africa.
+This comprehensive example demonstrates how to combine `sasf` with external spatial data. 
+We'll plot open access datacentres across South Africa through these steps:
 
-### Data: Open Access Datacentres
+### Step 1: Download and Process Datacentre Data
 
 Download, process and plot spatial data on open access datacentres in Africa which has been collected from publicly available sources.
 Big thanks to [Steve Song](https://github.com/stevesong/Africa-Datacentres)!
@@ -265,14 +265,16 @@ datacentres <- datacentres %>%
 glimpse(datacentres)
 ```
 
-### Aggregate `subplaces` to Create Borders
+### Step 2: Create Provincial Boundaries
 
 For many use cases, spatial data by subplace is too granular and computationally cumbersome.
 The dimensions of the `subplaces` dataset can be reduced by aggregating the geometries of individual subplaces toward less granular administrative levels/geographic units.
 In this example, we merely want to plot provincial borders.
 
 There are various ways to accomplish this feat and below we'll benchmark a couple of similar approaches:
+  
   - [`rmapshaper`](https://andyteucher.ca/rmapshaper/) relying on the [`mapshaper`](https://github.com/mbloch/mapshaper/) tool written in JavaScript. We benchmark the package's `ms_dissolve` with and without the use of a locally installed `mapshaper` library.
+  
   - [`sf`](https://r-spatial.github.io/sf/index.html) package's well-known [`st_union`](https://r-spatial.github.io/sf/reference/geos_combine.html) to combine several feature geometries into one with- or without resolving internal boundaries.
 
 Each approach has their own peculiar costs and benenfits.
@@ -342,7 +344,7 @@ ggplot() +
   )
 ```
 
-### Plotting Datacentres
+### Step 3: Basic Datacentre Visualisation
 
 Now that we have the provincial backdrop, we're able to plot the datacentres.
 Fortunately, in this case, it wasn't really necessary to transform the coordinate reference systems (CRS) of either `datacentres` or `provinces`.
@@ -388,6 +390,105 @@ datacentres %>%
   guides(colour = guide_legend(override.aes = list(size = 5)))
 ```
 
+### Step 4: Advanced Faceted Visualization by Province
+
+Creating a multi-panel visualisation by province allows for a more detailed examination.
+
+
+First, we'll need to disable S2 spherical geometry to avoid topological errors that can occur when joining spatial objects. Then we'll spatially join our datacentres with provinces to determine which datacentres fall within each province.
+
+```{r datacentres-plot-variation, cache = FALSE}
+# Disable S2 spherical geometry to avoid topological errors
+sf_use_s2(FALSE)
+
+# join datasets by checking whether x is within y
+combined <- st_join(
+  x = datacentres,
+  y = provinces,
+  join = st_within,
+  left = FALSE
+)
+
+# Check which provinces contain datacentres
+unique(combined$province_name)
+```
+
+The spatial join preserves the datacentre geometries while associating each point with its containing province.
+This shows us that datacentres are concentrated in just three provinces.
+
+Standard plot faceting doesn't work well with spatial data and `geom_sf` because the axes cannot be scaled freely while maintaining the correct geographic proportions.
+Therefore, we'll use a custom approach with `cowplot` to create a composite.
+We'll need to create individual plots for each province.
+
+```{r provinces-individual-plots}
+# Create a list of plots, one for each province with datacentres
+provinces_plots <- purrr::map(
+  unique(combined$province_name),
+  function(x) {
+    ggplot() +
+      geom_sf(
+        data = provinces %>%
+          filter(province_name == x),
+        fill = NA
+      ) +
+      geom_sf(
+        data = combined %>%
+          filter(province_name == x),
+        aes(color = company),
+        size = 10,
+        alpha = 0.5,
+        show.legend = FALSE
+      )
+  }
+)
+```
+
+For a complete visualization, we need a shared legend.
+We'll extract a legend from a dummy plot and then combine it with our province plots.
+
+```{r legend-and-final-plot}
+# Extract a legend from a dummy plot
+plot_legend <- cowplot::get_plot_component(
+  plot = {
+    combined %>%
+      ggplot() +
+      geom_sf(
+        aes(color = company),
+        size = 10,
+        alpha = 0.5,
+        show.legend = TRUE
+      ) +
+      guides(color = guide_legend(
+        "Company",
+        nrow = 1,
+        override.aes = list(size = 5)
+      )) +
+      theme(legend.position = "bottom")
+  },
+  "guide-box-bottom",
+  return_all = TRUE
+)
+
+# Arrange the individual province plots in a row
+plot_top_row <- cowplot::plot_grid(
+  plotlist = provinces_plots,
+  ncol = 3,
+  labels = c("Western Cape", "Kwa-Zulu Natal", "Gauteng"),
+  label_x = 0.5,
+  hjust = 0.5
+)
+
+# Combine the plots with the legend underneath
+cowplot::plot_grid(
+  plot_top_row,
+  plot_legend,
+  ncol = 1,
+  rel_heights = c(1, .1)
+)
+```
+
+This composite visualization shows that South Africa's datacentres are concentrated in three provinces, with different companies maintaining presence across these economic hubs. 
+The approach demonstrates how `sasf` can be combined with other packages to create informative visualisations and analyses.
 
 # Acknowledgements
 
@@ -396,6 +497,8 @@ datacentres %>%
 - The wiki by [konektaz](https://github.com/konektaz) offers a useful summary of the hierarchical structure of spatial layers: *[South Africa Census 2011 spatial metadata](https://github.com/konektaz/shape-files/wiki/South-Africa---Census-2011-spatial-metadata)*
 
 - The original shapefiles were sourced from the [OpenUp Data Portal](https://data.openup.org.za/) at this link: *[Census 2011 Boundaries Subplace Layer](https://data.openup.org.za/dataset/census-2011-boundaries-subplace-layer-qapr-gczi/)*
+
+- For data on African datacentres, see the [`Africa-Datacentres`](https://github.com/stevesong/Africa-Datacentres) by Steve Song.
 
 # Session Information
 
